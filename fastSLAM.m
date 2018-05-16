@@ -33,10 +33,7 @@ weights = ones(M,1);
 weights = weights ./ M;
 
 X = zeros(numel(pose),M);% pose particles
-
 Y = cell(M,1);
-Ytemp = cell(M,1);
-
 P = eye(numel(pose)).*0;
 
 %% sampling
@@ -47,7 +44,7 @@ for i = 1:1:M
     Y{i}.covs = cell(0);
 end
 
-%% TODO, less use for loops
+% Y.X = X;
 
 for iter = 1:noOfIter
     % Move a bit
@@ -58,13 +55,20 @@ for iter = 1:noOfIter
         for j = 1:1:M
             X(:,j) = Y{j}.pose;
         end
-%         X = [Y{:}.pose]';
+%         X = Y.X;
+%         tic
+%         Xc = cellfun(@(Yj)(Yj.pose),Y,'UniformOutput',false);
+%         X = cell2mat(Xc');
+%         toc
     end
     % sample pose
-    [pose, poseCov, X] = fastSLAMPrediction(delSr, delSl, X, weights);    
+    [pose, poseCov, X] = fastSLAMPrediction(delSr, delSl, X, weights);        
+%     Y.X = X;
+%     tic
     for j = 1:1:M
         Y{j}.pose = X(:,j);
     end
+%     toc
     
     poses(:,iter) = pose;
     poseCovs{1,iter} = poseCov;
@@ -82,18 +86,17 @@ for iter = 1:noOfIter
         arrow(realPose(1:2),realPose(1:2)+[cos(realPose(3));sin(realPose(3))]/5,10,[],[],[],'FaceColor','b');
         
 %         plotIdx = round(linspace(1, iter, 100));
-%         for ellipsoidIndex = [max(iter-10*plotNthEllipsoid,1):plotNthEllipsoid:iter iter]
-%             h=plot_gaussian_ellipsoid(poses(1:2,ellipsoidIndex), poseCovs{1,ellipsoidIndex}(1:2,1:2));
-%             set(h,'color','r');
-%             plot(poses(1,ellipsoidIndex),poses(2,ellipsoidIndex),'rx')
-%         end
+        for ellipsoidIndex = [1:plotNthEllipsoid:iter iter]
+            h=plot_gaussian_ellipsoid(poses(1:2,ellipsoidIndex), poseCovs{1,ellipsoidIndex}(1:2,1:2));
+            set(h,'color','r');
+            plot(poses(1,ellipsoidIndex),poses(2,ellipsoidIndex),'rx')
+        end
         title('Real and the estimated paths of the robot')
         xlabel('x(m)');
         ylabel('y(m)');
         legend(handles, 'Estimated path','Actual path');
         hold off
         pause(0.01)
-%         draw now
     end     
     
     %% fastSLAM    
@@ -129,6 +132,7 @@ for iter = 1:noOfIter
 %             plot([corners(ii+2,2) corners(ii+3,2)],[corners(ii+2,1) corners(ii+3,1)]);
 %             plot([corners(ii+3,2) corners(ii,2)],[corners(ii+3,1) corners(ii,1)]);
 %         end
+
         [featurePoses, featureCovs] = computeFeaturePoseAndCov(Y, weights, SLAM_FEATURE_ID);
         
         %% plot tracked features
