@@ -16,8 +16,8 @@ smrNo=0
 %% Kalman filter Robot constants
 global odoB_kf kR_kf kL_kf
 odoB_kf = 0.3; % The separation between the two wheels
-kR_kf = 0.001; % The variance of the linear uncertainty for a 1m move for the right wheel
-kL_kf = 0.001; % The variance of the linear uncertainty for a 1m move for the left wheel
+kR_kf = 0.01; % The variance of the linear uncertainty for a 1m move for the right wheel
+kL_kf = 0.01; % The variance of the linear uncertainty for a 1m move for the left wheel
 
 %% Simulation constants
 global ts robotLinearSpeed robotAngularSpeed robotPathWidth robotPathRadius trackNo
@@ -123,7 +123,7 @@ R33_Markers(3,:,:) = [1 0 0;0 0 1;0 -1 0];
 R33_Markers(4,:,:) = [0 1 0;0 0 1;1 0 0];
 
 global varVision
-varVision = 0.01;
+varVision = 0.005;
 
 global idBasePath
 idBasePath = '/digits/id/'

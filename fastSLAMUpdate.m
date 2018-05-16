@@ -26,22 +26,10 @@ function [X, Y, weights, SLAM_FEATURE_ID] = fastSLAMUpdate(rt_vision, idEst, X, 
     if dimC == 0
         doUpdate = 0;
     end
- 
-    Rs = zeros(3,3,dimC);
-    ts = zeros(3,dimC);
-    for j = 1:dimC
-        rt = measurement(j,:)';
-        R = so3_exp(rt(1:3));
-        t = rt(4:6);
-        Rs(:,:,j) = R;
-        ts(:,j) = t;
-    end
     
-    R = zeros(3,3);
     if doUpdate == 1
         global varVision
         Rs = [varVision 0 0;0 varVision 0;0 0 varVision*2];
-        
         for i = 1:size(Y,1)
             C = zeros(3,3);
             residuals = zeros(3,1);
@@ -57,9 +45,9 @@ function [X, Y, weights, SLAM_FEATURE_ID] = fastSLAMUpdate(rt_vision, idEst, X, 
                 C(2,1) = -sy; C(2,2) = cy;
                 C(3,3) = 1;
                 %% get vision relative measurement
-                R = Rs(:,:,j);
-                t = ts(:,j);
-                
+                rt = measurement(j,:)';
+                R = so3_exp(rt(1:3));
+                t = rt(4:6);
                 %% since those are rotation from camera to marker
                 global camRelPos camRelRot
                 Rm2b = R * camRelRot;
@@ -88,7 +76,7 @@ function [X, Y, weights, SLAM_FEATURE_ID] = fastSLAMUpdate(rt_vision, idEst, X, 
                 Y{i}.means{offset(j),3} = featurepose(3);
                 Y{i}.covs{offset(j),:} = featurecov;
 
-                weights(i) = weights(i) * 1/sqrt((2*pi)^3*det(sigma_in+Rs))*exp(-0.5*residuals'*inv(sigma_in+Rs)*residuals);%weights(i) * 
+                weights(i) = weights(i)*1/sqrt((2*pi)^3*det(sigma_in+Rs))*exp(-0.5*residuals'*inv(sigma_in+Rs)*residuals);%weights(i) * 
             end
         end
         weights = weights ./ sum(weights);
@@ -97,7 +85,7 @@ function [X, Y, weights, SLAM_FEATURE_ID] = fastSLAMUpdate(rt_vision, idEst, X, 
     %% resampling
     M = size(Y,1);
     Neff = 1/sum(weights.^2);
-    resample_percentage = 0.80;
+    resample_percentage = 0.70;
     Nt = resample_percentage*M;
     if Neff < Nt
         % resampling

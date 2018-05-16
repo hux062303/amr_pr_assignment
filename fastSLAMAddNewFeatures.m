@@ -24,27 +24,16 @@ function [Y, SLAM_FEATURE_ID, weights]= fastSLAMAddNewFeatures(rt_vision, idEst,
     global varVision
     Rs = [varVision 0 0;0 varVision 0;0 0 varVision*2];%% initlization
 
-%     cosSum = 0;sinSum = 0;
-%     poseAvg = zeros(3,1);
-%     for i = 1:1:size(X,2)    
-%         posePred = X(:,i);
-%         poseAvg = poseAvg + weights(i).*posePred; 
-%         cosSum = weights(i).*cos(posePred(3));
-%         sinSum = weights(i).*sin(posePred(3));
-%     end
-%     poseAvg(3) = atan2(sinSum, cosSum);
-    
-    Rs = zeros(3,3,dimC);
-    ts = zeros(3,dimC);
-    for j = 1:dimC
-        rt = measurement(j,:)';
-        R = so3_exp(rt(1:3));
-        t = rt(4:6);
-        Rs(:,:,j) = R;
-        ts(:,j) = t;
+    cosSum = 0;sinSum = 0;
+    poseAvg = zeros(3,1);
+    for i = 1:1:size(X,2)    
+        posePred = X(:,i);
+        poseAvg = poseAvg + weights(i).*posePred; 
+        cosSum = weights(i).*cos(posePred(3));
+        sinSum = weights(i).*sin(posePred(3));
     end
-    R = zeros(3,3);
-
+    poseAvg(3) = atan2(sinSum, cosSum);
+    
     for j = 1:size(Y,1)
         pose = Y{j}.pose;
         %% construct
@@ -52,15 +41,15 @@ function [Y, SLAM_FEATURE_ID, weights]= fastSLAMAddNewFeatures(rt_vision, idEst,
         cy = cos(vehicleYaw);
         sy = sin(vehicleYaw);
         
-%         covOut = zeros(3,3);
-%         err = pose - poseAvg;
-%         covOut = (err)*(err)';
+        covOut = zeros(3,3);
+        err = pose - poseAvg;
+        covOut = (err)*(err)';
         
         for i = 1:1:dimC    
             %% get vision relative measurement
-%             rt = measurement(i,:)';
-            R = Rs(:,:,i);
-            t = ts(:,i);
+            rt = measurement(i,:)';
+            R = so3_exp(rt(1:3));
+            t = rt(4:6);
 
             %% since those are rotation from camera to marker
             global camRelPos camRelRot
@@ -72,6 +61,7 @@ function [Y, SLAM_FEATURE_ID, weights]= fastSLAMAddNewFeatures(rt_vision, idEst,
 
             markerYaw = atan2(sin(yawFromG),cos(yawFromG));% round
    
+
             Rg2b = [cy -sy 0;sy cy 0;0 0 1];% from body to ground
             tg = Rg2b * (camRelRot' * (t - camRelPos'));% first, project translation from camera to body, then to ground
             
