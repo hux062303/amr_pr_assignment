@@ -1,0 +1,20 @@
+function [ SO3 ] = so3_exp( so3 )
+%UNTITLED10 ????????????????????????
+%   ????????????????
+a = norm(so3);
+if a < 1e-4
+    SO3 = eye(3,3);
+    return;
+end
+
+axis = so3./a;
+K = [0 -axis(3) axis(2); ...
+     axis(3) 0 -axis(1); ...
+     -axis(2) axis(1) 0];
+ 
+SO3 = eye(3,3) + sin(a).* K+(1-cos(a)).*K*K;
+
+SO3_2 = cos(a) * eye(3,3) + (1 - cos(a)) * axis'*axis + sin(a) * K;
+
+end
+

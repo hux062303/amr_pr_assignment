@@ -1,0 +1,103 @@
+function [poseOut, poseCovOut, odoPose] = driveToWaypoint(mrcSck,poseIn, poseCovIn, odoPose,targetPose, simulation)
+
+    global odoB kR kL
+    global robotLinearSpeed robotAngularSpeed
+    global realPose
+   
+    headingAngle = atan2(targetPose(2)-odoPose(2),targetPose(1)-odoPose(1));
+    th1 = 180/pi*(mod(headingAngle-odoPose(3)+3*pi,2*pi)-pi);
+    dist = sqrt((targetPose(1)-odoPose(1))^2+(targetPose(2)-odoPose(2))^2);
+    th2 = 180/pi*(mod(targetPose(3)-headingAngle+3*pi,2*pi)-pi);
+
+    if(simulation)
+        resetOdo(mrcSck);
+        resetOdoCov(mrcSck);
+
+        ignoreText = 'ignoreobstacles';
+
+        char(receiveMessage(mrcSck,0.01));
+
+        if(abs(th1)<5)
+            relPose=subsPose(odoPose,targetPose);
+            relPose(3) = th1*pi/180;
+            odoTargetPose = addPose(odoPose,relPose)';
+            command = sprintf('drive %f %f %f "rad" @v0.2: ($drivendist>%f)',[odoTargetPose dist]);
+            mssendraw(mrcSck,uint8(['resetmotors' 10 ignoreText 10 command 10 'idle' 10]));
+        else
+            mssendraw(mrcSck,uint8(['resetmotors' 10 'turn ' num2str(th1) ' @a0.1' 10  'resetmotors' 10 ignoreText 10 'fwd ' num2str(dist) ' @a0.1' 10]))
+        end
+
+        if(abs(th2)<5)
+           mssendraw(mrcSck,uint8(['syncevent "complete"' 10]));     
+        else
+           mssendraw(mrcSck,uint8(['resetmotors' 10 'turn ' num2str(th2) ' @a0.1' 10 'syncevent "complete"' 10])); 
+        end
+
+        response = '';
+        while(true)
+            response = [response char(receiveMessage(mrcSck,0.01))];
+            if(~isempty(strfind(response,'syncevent complete')))
+                break
+            end
+        end
+
+        [poseDiff, odoPose] = getPose(mrcSck);
+        covDiff = getOdoCov(mrcSck);
+        [poseOut, poseCovOut] = addPoseProbabilistic(poseIn,poseCovIn, poseDiff, covDiff);
+    else
+
+        turn(th1);
+        moveForward(dist);
+        turn(th2);
+
+    end
+
+    function turn(angle)
+        rotationIncrement = ts*robotAngularSpeed;
+        while(remainingAngle)
+            if(abs(remainingAngle) > rotationIncrement )
+                delSr = rotationIncrement * odoB/2 * sign(remainingAngle);
+                delSl = -rotationIncrement * odoB/2 * sign(remainingAngle);
+                remainingAngle = remainingAngle - rotationIncrement*sign(remainingAngle);
+            else
+                delSr = remainingAngle * odoB/2;
+                delSl = -remainingAngle * odoB/2;
+                remainingAngle = 0;
+            end
+        end
+        
+                    varR = kR*abs(delSr);
+            varL = kL*abs(delSl);
+
+            delSr_ = delSr+randn*sqrt(varR); %Apply the noise on the measurements
+            delSl_ = delSl+randn*sqrt(varL);
+
+            [poseIn,poseCovIn] = odoUpdate(poseIn,poseCovIn, delSr, delSl);
+            realPose = odoUpdate(realPose,zeros(3), delSr_, delSl_);
+    end
+
+    function moveForward(distance)
+        forwardIncrement = ts*robotLinearSpeed;
+        remainingDist = distance;
+        while(remainingDist)
+            if(remainingDist > forwardIncrement )
+                delSr = forwardIncrement;
+                delSl = forwardIncrement;
+                remainingDist = remainingDist-forwardIncrement;
+            else
+                delSr = remainingDist;
+                delSl = remainingDist;
+                remainingDist = 0;
+            end
+
+            varR = kR*abs(delSr);
+            varL = kL*abs(delSl);
+
+            delSr_ = delSr+randn*sqrt(varR); %Apply the noise on the measurements
+            delSl_ = delSl+randn*sqrt(varL);
+
+            [poseIn,poseCovIn] = odoUpdate(poseIn,poseCovIn, delSr, delSl);
+            realPose = odoUpdate(realPose,zeros(3), delSr_, delSl_);
+        end
+    end
+end
