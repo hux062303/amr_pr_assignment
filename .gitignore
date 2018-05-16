@@ -1,0 +1,6 @@
+
+digits/6/_DS_Store
+
+_DS_Store
+
+[featurePoses, featureCovs] = computeFeaturePoseAndCov(Y, weights);.m
