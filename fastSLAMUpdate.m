@@ -97,7 +97,7 @@ function [X, Y, weights, SLAM_FEATURE_ID] = fastSLAMUpdate(rt_vision, idEst, X, 
     %% resampling
     M = size(Y,1);
     Neff = 1/sum(weights.^2);
-    resample_percentage = 0.80;
+    resample_percentage = 0.5;
     Nt = resample_percentage*M;
     if Neff < Nt
         % resampling

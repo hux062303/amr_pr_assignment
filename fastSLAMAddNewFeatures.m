@@ -83,7 +83,7 @@ function [Y, SLAM_FEATURE_ID, weights]= fastSLAMAddNewFeatures(rt_vision, idEst,
             
             Fu = [cy -sy 0;sy cy 0;0 0 1];
             Fx = eye(3,3) + [0 0 -sy*tg(1)-cy*tg(2);0 0 cy*tg(1)-sy*tg(2);0 0 0];
-            Qt = Fu*Rs*Fu';%Fx*covOut*Fx' + 
+            Qt = Fu*Rs*Fu';%+Fx*covOut*Fx';
             
             Y{j}.covs = [Y{j}.covs;{Qt}];
         end

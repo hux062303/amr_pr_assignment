@@ -28,7 +28,7 @@ doFASTSLAM = 1;
 SLAM_FEATURE_ID = [];
 
 %% particle filter parameters
-M = 1000;
+M = 500;
 weights = ones(M,1);
 weights = weights ./ M;
 
@@ -45,6 +45,7 @@ for i = 1:1:M
 end
 
 % Y.X = X;
+frames=[];
 
 for iter = 1:noOfIter
     % Move a bit
@@ -148,4 +149,14 @@ for iter = 1:noOfIter
             end
         end
     end
+    frame=getframe;
+    frames = [frames;frame];
 end
+
+v = VideoWriter('/Users/xiaohu/Downloads/ekf_slam/kalmanexercise/fastslam.avi');
+open(v);
+for i = 1:1:size(frames,1)
+    writeVideo(v,frames(i));
+end
+close(v);
+
